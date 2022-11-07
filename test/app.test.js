@@ -139,7 +139,7 @@ describe('POST /favourite/:code', () => {
       })
   })
 
-  it.only("Should return 201 and set movie as favourite for logged user without review", done => {
+  it("Should return 201 and set movie as favourite for logged user without review", done => {
 
     request(app)
       .post(`/login`)
@@ -160,19 +160,23 @@ describe('POST /favourite/:code', () => {
   it("Should not allow to favourite the same movie twice", done => {
 
     request(app)
-    .post
-    request(app)
-      .post(`/favourite/${movieExample.codeExample}`)
-      .set({ Authorization: `Bearer ${userExample.token}` })
-      .expect(400)
-      .then((response) => {
-        assert.isString(response._body.errorMessage, "Film is already added to favorite");
+      .post(`/login`)
+      .send(userExample)
+      .then((user) => {
+        request(app)
+          .post(`/favourite/${movieExample.codeExample}`)
+          .send({ review: movieExample.review })
+          .set({ Authorization: `Bearer ${user._body.token}` })
+          .expect(400)
+          .then((response) => {
+            assert.isString(response._body.errorMessage, "Film is already added to favorite");
+          })
+          .then(() => done(), done);
       })
-      .then(() => done(), done);
   })
 
-});
 
+})
 // TO-DO
 // Check status
 // Check si se registro el cambio en la DB
@@ -180,9 +184,6 @@ describe('POST /favourite/:code', () => {
 
 
 describe('POST /rent/:code', () => {
-
-  // beforeEach(done => {
-  // })
 
   const userExample = {
     nombre: "Cristian",
@@ -199,26 +200,31 @@ describe('POST /rent/:code', () => {
     review: "Colocar Review"
   }
 
-  it("Should return 201 and successfully rent a movie", done => {
-    request(app)
-      .post(`/rent/${movieExample.codeExample}`)
-      .set({ Authorization: `Bearer ${userExample.token}` })
-      .expect(201)
-      .then(async (response) => {
-        const rents = await prisma.rents.findMany()
-        const movies = await prisma.movies.findMany()
-        assert.isString(response._body.msg, "Rented movie")
-        assert.operator(rents[0].id_rent, ">", 0)
-        assert.operator(movies[0].rentals, ">", 0)
+  it.only("Should return 201 and successfully rent a movie", done => {
 
+    request(app)
+      .post('/login')
+      .send(userExample)
+      .then((user) => {
+        request(app)
+          .post(`/rent/${movieExample.codeExample}`)
+          .set({ Authorization: `Bearer ${user._body.token}` })
+          .expect(201)
+          .then(async (response) => {
+            // console.log(response)
+            const rent = await prisma.rents.findUnique({ where: { id_user: user.id } })
+            const movie = await prisma.movies.findUnique({ where: { code: movieExample.codeExample } })
+            console.log(rent);
+
+            assert.isString(response._body.msg, "Rented movie")
+            // assert.operator(rent.id_rent, ">", 0)
+            // assert.operator(movie.rentals, ">", 0)
+          })
+          .then(() => done(), done);
       })
-      .then(() => done(), done);
-    //TO_DO
-    //Check status
-    //Chequear si se persistio correctamente la reserva
-    //Chequear que se quito una peli de stock
-    //Chequear que se sumo la renta a las veces alquiladas
   })
+
+
   it("Should not allow rent if there is no stock", done => {
     //TO-DO
   })
