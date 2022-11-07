@@ -111,9 +111,7 @@ describe('POST /favourite/:code', () => {
     password: "avalith",
     phone: "555-555-555",
     dni: "43123453",
-    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3VhcmlvIjp7ImlkIjoyLCJlbWFpbCI6ImNyaXN0aWFuQGdtYWlsLmNvbSIsImRuaSI6IjQzMTIzNDUzIiwicGhvbmUiOiI1NTUtNTU1LTU1NSIsInBhc3N3b3JkIjoiJDJiJDEwJC9rcmxJUUxibTJFMUgvTGkzRDhDUy52T2JxaXB2Mm9mcVhtejg4SE53ZDh6VENxdTgxLjllIiwiY3JlYXRlZEF0IjoiMjAyMi0xMS0wN1QwNTo0NTozNi4xMjlaIiwidXBkYXRlZEF0IjpudWxsLCJyb2xlIjoiVVNFUiJ9LCJpYXQiOjE2Njc3OTk5OTUsImV4cCI6MTczMDAwNzk5NX0.JM-a8pFB1__gynjlXj23MiZu2VsfASMfFdgPOGVO_6w"
   }
-
   const movieExample = {
     codeExample: "2baf70d1-42bb-4437-b551-e5fed5a87abe",
     codeExample2: "0440483e-ca0e-4120-8c50-4c8cd9b965d6",
@@ -124,30 +122,45 @@ describe('POST /favourite/:code', () => {
   }
 
   it("Should return 201 and set movie as favourite for logged user with review", done => {
+
     request(app)
-      .post(`/favourite/${movieExample.codeExample}`)
-      .send({ review: movieExample.review })
-      .set({ Authorization: `Bearer ${userExample.token}` })
-      .expect(201)
-      .then((response) => {
-        assert.isString(response._body.msg, "Movie Added to Favorites");
+      .post(`/login`)
+      .send(userExample)
+      .then((user) => {
+        request(app)
+          .post(`/favourite/${movieExample.codeExample}`)
+          .send({ review: movieExample.review })
+          .set({ Authorization: `Bearer ${user._body.token}` })
+          .expect(201)
+          .then((response) => {
+            assert.isString(response._body.msg, "Movie Added to Favorites");
+          })
+          .then(() => done(), done);
       })
-      .then(() => done(), done);
+  })
+
+  it.only("Should return 201 and set movie as favourite for logged user without review", done => {
+
+    request(app)
+      .post(`/login`)
+      .send(userExample)
+      .then((user) => {
+        request(app)
+          .post(`/favourite/${movieExample.codeExample2}`)
+          .set({ Authorization: `Bearer ${user._body.token}` })
+          .expect(201)
+          .then((response) => {
+            assert.isString(response._body.msg, "Movie Added to Favorites");
+          })
+          .then(() => done(), done);
+      })
   });
 
-  it("Should return 201 and set movie as favourite for logged user without review", done => {
+
+  it("Should not allow to favourite the same movie twice", done => {
+
     request(app)
-      .post(`/favourite/${movieExample.codeExample2}`)
-      .set({ Authorization: `Bearer ${userExample.token}` })
-      .expect(201)
-      .then((response) => {
-        assert.isString(response._body.msg, "Movie Added to Favorites");
-      })
-      .then(() => done(), done);
-  });
-
-
-  it.only("Should not allow to favourite the same movie twice", done => {
+    .post
     request(app)
       .post(`/favourite/${movieExample.codeExample}`)
       .set({ Authorization: `Bearer ${userExample.token}` })
@@ -160,15 +173,10 @@ describe('POST /favourite/:code', () => {
 
 });
 
-
-
 // TO-DO
 // Check status
 // Check si se registro el cambio en la DB
 // Check si el registro en la DB es correcto
-
-
-
 
 
 describe('POST /rent/:code', () => {
@@ -181,10 +189,8 @@ describe('POST /rent/:code', () => {
     email: "cristian@gmail.com",
     password: "avalith",
     phone: "555-555-555",
-    dni: "43123453",
-    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3VhcmlvIjp7ImlkIjoyLCJlbWFpbCI6ImNyaXN0aWFuQGdtYWlsLmNvbSIsImRuaSI6IjQzMTIzNDUzIiwicGhvbmUiOiI1NTUtNTU1LTU1NSIsInBhc3N3b3JkIjoiJDJiJDEwJDJTYVZZZldYYUphRDNSNzJycHI1bWVnNzZhTU9MZThkUFJSNzJ3bUp4YURpQUl2LlpnMHB1IiwiY3JlYXRlZEF0IjoiMjAyMi0xMS0wN1QwNToxMjozMS4yOTdaIiwidXBkYXRlZEF0IjpudWxsLCJyb2xlIjoiVVNFUiJ9LCJpYXQiOjE2Njc3OTgzNzIsImV4cCI6MTczMDAwNjM3Mn0.f238OC5kynHCvVO_JPl0t-ICSDjG02mV18_XquHIVAA"
+    dni: "43123453"
   }
-
   const movieExample = {
     codeExample: "2baf70d1-42bb-4437-b551-e5fed5a87abe",
     title: "Castle in the Sky",
