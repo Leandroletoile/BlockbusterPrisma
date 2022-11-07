@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "mysql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id            Int             @id @default(autoincrement())
+    email         String          @unique
+    dni           String          @unique
+    phone         String          @unique
+    password      String
+    createdAt     DateTime        @default(now())
+    updatedAt     String?
+    rents         Rents[]
+    favoriteFilms FavoriteFilms[]
+    role          Role            @default(USER)
+}
+
+model Rents {
+    id_rent         Int      @id @default(autoincrement())
+    id_user         Int
+    user            User     @relation(fields: [id_user], references: [id])
+    code            String
+    movie           Movies   @relation(fields: [code], references: [code])
+    rent_date       DateTime @default(now())
+    refund_date     DateTime @default(now())
+    userRefund_date DateTime @default(now())
+}
+
+model Movies {
+    code           String          @id @unique
+    title          String
+    stock          Int
+    rentals        Int
+    rents          Rents[]
+    favorite_films FavoriteFilms[]
+    updatedAt      String
+    createdAt      String
+}
+
+model FavoriteFilms {
+    id         Int      @id @default(autoincrement())
+    movie_code String
+    movies     Movies[]
+    user_id    Int
+    review     String?
+    user       User     @relation(fields: [user_id], references: [id])
+}
+
+enum Role {
+    USER
+    ADMIN
+}
