@@ -200,7 +200,7 @@ describe('POST /rent/:code', () => {
     review: "Colocar Review"
   }
 
-  it.only("Should return 201 and successfully rent a movie", done => {
+  it("Should return 201 and successfully rent a movie", done => {
 
     request(app)
       .post('/login')
@@ -211,14 +211,11 @@ describe('POST /rent/:code', () => {
           .set({ Authorization: `Bearer ${user._body.token}` })
           .expect(201)
           .then(async (response) => {
-            // console.log(response)
-            const rent = await prisma.rents.findUnique({ where: { id_user: user.id } })
+            const rent = await prisma.rents.findMany()
             const movie = await prisma.movies.findUnique({ where: { code: movieExample.codeExample } })
-            console.log(rent);
-
             assert.isString(response._body.msg, "Rented movie")
-            // assert.operator(rent.id_rent, ">", 0)
-            // assert.operator(movie.rentals, ">", 0)
+            assert.operator(rent[0].id_rent, ">", 0)
+            assert.operator(movie.rentals, ">", 0)
           })
           .then(() => done(), done);
       })
