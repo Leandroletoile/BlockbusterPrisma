@@ -258,28 +258,17 @@ describe('POST /rent/:code', () => {
       .expect(200)
       .then(async (user) => {
         const withoutStock = await prisma.movies.update({
-          data: { stock: 0 },
+          data: { stock: 0, rentals: 1 },
           where: { code: movieWhithoutStock.code }
         })
         request(app)
-          .post(`/rent/${withoutStock}`)
+          .post(`/rent/${withoutStock.code}`)
           .set({ Authorization: `Bearer ${user._body.token}` })
-          .expect(404)
+          .expect(400)
           .then(async (response) => {
 
-            console.log(response);
-
-            // const withoutStock = await prisma.movies.update({
-            //   data: { stock: 0 },
-            //   where: { code: movieWhithoutStock.code }
-            // })
-            // console.log(withoutStock);
-
-            // const rent = await prisma.rents.findMany()
-            // const movie = await prisma.movies.findUnique({ where: { code: movieExample.code } })
-            // assert.equal(response._body.msg, "Rented movie")
-            // assert.operator(rent[0].id_rent, ">", 0)
-            // assert.operator(movie.rentals, ">", 0)
+            assert.equal(response._body.error, "The movie has not stock")
+            assert.equal(withoutStock.stock, 0)
 
           })
           .then(() => done(), done);
