@@ -77,6 +77,7 @@ describe("POST /register", () => {
 
 
 describe("POST /login  --  GET /logout", () => {
+
   const userExample = {
     nombre: "Cristian",
     email: "cristian@gmail.com",
@@ -154,6 +155,7 @@ describe('POST /favourite/:code', () => {
           .expect(201)
           .then((response) => {
 
+
             assert.equal(response._body.msg, "Movie Added to Favorites");
 
           })
@@ -216,13 +218,15 @@ describe('POST /rent/:code', () => {
     phone: "555-555-555",
     dni: "43123453"
   }
+
   const movieExample = {
-    codeExample: "2baf70d1-42bb-4437-b551-e5fed5a87abe"
+    code: "2baf70d1-42bb-4437-b551-e5fed5a87abe"
   }
+
   const movieWhithoutStock = {
-    codeExample: "0440483e-ca0e-4120-8c50-4c8cd9b965d6",
-    stock: 0
+    code: "112c1e67-726f-40b1-ac17-6974127bb9b9"
   }
+
   it("Should return 201 and successfully rent a movie", done => {
 
     request(app)
@@ -231,26 +235,55 @@ describe('POST /rent/:code', () => {
       .expect(200)
       .then((user) => {
         request(app)
-          .post(`/rent/${movieExample.codeExample}`)
+          .post(`/rent/${movieExample.code}`)
           .set({ Authorization: `Bearer ${user._body.token}` })
           .expect(201)
           .then(async (response) => {
             const rent = await prisma.rents.findMany()
-            const movie = await prisma.movies.findUnique({ where: { code: movieExample.codeExample } })
+            const movie = await prisma.movies.findUnique({ where: { code: movieExample.code } })
             assert.equal(response._body.msg, "Rented movie")
             assert.operator(rent[0].id_rent, ">", 0)
             assert.operator(movie.rentals, ">", 0)
           })
-          .then(() => done(), done);
+          .then(() => done(), done)
       })
   })
 
 
-  it("Should not allow rent if there is no stock", done => {
+  it.only("Should not allow rent if there is no stock", done => {
 
     request(app)
-      .post(`rent/${movieWhithoutStock.codeExample}`)
-    //TO-DO
+      .post('/login')
+      .send(userExample)
+      .expect(200)
+      .then(async (user) => {
+        const withoutStock = await prisma.movies.update({
+          data: { stock: 0 },
+          where: { code: movieWhithoutStock.code }
+        })
+        request(app)
+          .post(`/rent/${withoutStock}`)
+          .set({ Authorization: `Bearer ${user._body.token}` })
+          .expect(404)
+          .then(async (response) => {
+
+            console.log(response);
+
+            // const withoutStock = await prisma.movies.update({
+            //   data: { stock: 0 },
+            //   where: { code: movieWhithoutStock.code }
+            // })
+            // console.log(withoutStock);
+
+            // const rent = await prisma.rents.findMany()
+            // const movie = await prisma.movies.findUnique({ where: { code: movieExample.code } })
+            // assert.equal(response._body.msg, "Rented movie")
+            // assert.operator(rent[0].id_rent, ">", 0)
+            // assert.operator(movie.rentals, ">", 0)
+
+          })
+          .then(() => done(), done);
+      })
   })
 
 
@@ -360,8 +393,7 @@ describe('GET /favourites', () => {
   })
 
 
-
-  it.only("Should forbid access to non logged user", done => {
+  it("Should forbid access to non logged user", done => {
 
     request(app)
       .get(`/favourites/user`)
