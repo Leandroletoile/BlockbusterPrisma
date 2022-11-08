@@ -28,7 +28,7 @@ describe("POST /register", () => {
     password: "avalith",
     phone: "555-555-555",
     dni: "43123453",
-  };
+  }
 
   it("should user register", (done) => {
     request(app)
@@ -68,7 +68,7 @@ describe("POST /register", () => {
       .send(userExample)
       .expect(400)
       .then((response) => {
-        assert.isString(response._body.errorMessage, "Email, dni or phone is already in use");
+        assert.equal(response._body.errorMessage, "Email, dni or phone is already in use");
         assert.isNotEmpty(response._body);
       })
       .then(() => done(), done);
@@ -76,7 +76,7 @@ describe("POST /register", () => {
 })
 
 
-describe("POST /login", () => {
+describe("POST /login  --  GET /logout", () => {
   const userExample = {
     nombre: "Cristian",
     email: "cristian@gmail.com",
@@ -98,9 +98,31 @@ describe("POST /login", () => {
             assert.isNotEmpty(res._body.token);
           })
           .then(() => done(), done);
-      });
-  });
-});
+      })
+  })
+
+
+  it("Should logued out", (done) => {
+    request(app)
+      .post("/login")
+      .send(userExample)
+      .expect(200)
+      .then((user) => {
+
+        request(app)
+          .get("/logout")
+          .set({ Authorization: `Bearer ${user._body.token}` })
+          .expect(202)
+          .then((res) => {
+            assert.equal(res._body.msg, 'Unlogged User')
+            assert.notExists(res._body.token)
+          })
+          .then(() => done(), done)
+      })
+  })
+
+
+})
 
 
 describe('POST /favourite/:code', () => {
@@ -115,9 +137,6 @@ describe('POST /favourite/:code', () => {
   const movieExample = {
     codeExample: "2baf70d1-42bb-4437-b551-e5fed5a87abe",
     codeExample2: "0440483e-ca0e-4120-8c50-4c8cd9b965d6",
-    title: "Castle in the Sky",
-    stock: "5",
-    rentals: "0",
     review: "Colocar Review"
   }
 
@@ -126,6 +145,7 @@ describe('POST /favourite/:code', () => {
     request(app)
       .post(`/login`)
       .send(userExample)
+      .expect(200)
       .then((user) => {
         request(app)
           .post(`/favourite/${movieExample.codeExample}`)
@@ -133,7 +153,9 @@ describe('POST /favourite/:code', () => {
           .set({ Authorization: `Bearer ${user._body.token}` })
           .expect(201)
           .then((response) => {
-            assert.isString(response._body.msg, "Movie Added to Favorites");
+
+            assert.equal(response._body.msg, "Movie Added to Favorites");
+
           })
           .then(() => done(), done);
       })
@@ -144,13 +166,14 @@ describe('POST /favourite/:code', () => {
     request(app)
       .post(`/login`)
       .send(userExample)
+      .expect(200)
       .then((user) => {
         request(app)
           .post(`/favourite/${movieExample.codeExample2}`)
           .set({ Authorization: `Bearer ${user._body.token}` })
           .expect(201)
           .then((response) => {
-            assert.isString(response._body.msg, "Movie Added to Favorites");
+            assert.equal(response._body.msg, "Movie Added to Favorites");
           })
           .then(() => done(), done);
       })
@@ -162,6 +185,7 @@ describe('POST /favourite/:code', () => {
     request(app)
       .post(`/login`)
       .send(userExample)
+      .expect(200)
       .then((user) => {
         request(app)
           .post(`/favourite/${movieExample.codeExample}`)
@@ -169,9 +193,9 @@ describe('POST /favourite/:code', () => {
           .set({ Authorization: `Bearer ${user._body.token}` })
           .expect(400)
           .then((response) => {
-            assert.isString(response._body.errorMessage, "Film is already added to favorite");
+            assert.equal(response._body.errorMessage, "Film is already added to favorite")
           })
-          .then(() => done(), done);
+          .then(() => done(), done)
       })
   })
 
@@ -193,18 +217,18 @@ describe('POST /rent/:code', () => {
     dni: "43123453"
   }
   const movieExample = {
-    codeExample: "2baf70d1-42bb-4437-b551-e5fed5a87abe",
-    title: "Castle in the Sky",
-    stock: "5",
-    rentals: "0",
-    review: "Colocar Review"
+    codeExample: "2baf70d1-42bb-4437-b551-e5fed5a87abe"
   }
-
+  const movieWhithoutStock = {
+    codeExample: "0440483e-ca0e-4120-8c50-4c8cd9b965d6",
+    stock: 0
+  }
   it("Should return 201 and successfully rent a movie", done => {
 
     request(app)
       .post('/login')
       .send(userExample)
+      .expect(200)
       .then((user) => {
         request(app)
           .post(`/rent/${movieExample.codeExample}`)
@@ -213,7 +237,7 @@ describe('POST /rent/:code', () => {
           .then(async (response) => {
             const rent = await prisma.rents.findMany()
             const movie = await prisma.movies.findUnique({ where: { code: movieExample.codeExample } })
-            assert.isString(response._body.msg, "Rented movie")
+            assert.equal(response._body.msg, "Rented movie")
             assert.operator(rent[0].id_rent, ">", 0)
             assert.operator(movie.rentals, ">", 0)
           })
@@ -223,20 +247,49 @@ describe('POST /rent/:code', () => {
 
 
   it("Should not allow rent if there is no stock", done => {
+
+    request(app)
+      .post(`rent/${movieWhithoutStock.codeExample}`)
     //TO-DO
   })
+
+
+
   it("Should not allow rent if movie does not exist", done => {
-    //TO-DO
+    request(app)
+      .post('/login')
+      .send(userExample)
+      .expect(200)
+      .then((user) => {
+        request(app)
+          .post(`/rent/nonexistentcode`)
+          .set({ Authorization: `Bearer ${user._body.token}` })
+          .expect(404)
+          .then((response) => {
+            assert.equal(response._body.error, "Movie Not Found")
+          })
+          .then(() => done(), done);
+      })
   })
+
+
   it("Should not allow non logged user to rent a movie", done => {
-    //TO-DO
+
+    request(app)
+      .post(`/rent/${movieExample.codeExample}`)
+      .expect(401)
+      .then((response) => {
+        assert.equal(response._body.error, "Authorization is not valid")
+      })
+      .then(() => done(), done);
   })
+
+
 })
 
-describe("POST /return/:code", done => {
-  beforeEach(done => {
-    // Crear usuario, pelicula, y rentas, una vencida y una sin vencer
-  })
+describe("POST /return/:id", done => {
+
+
   it("Should return a rental on time", done => {
     //TO-DO
     //Chequear status code 200
@@ -268,22 +321,57 @@ describe("POST /return/:code", done => {
   })
 })
 
+
 describe('GET /favourites', () => {
-  beforeEach(done => {
-    // Crear usuario, pelicula y agregar favoritos
-  })
+
+  const userExample = {
+    nombre: "Cristian",
+    email: "cristian@gmail.com",
+    password: "avalith",
+    phone: "555-555-555",
+    dni: "43123453"
+  }
+
   it("Should return 200 status and logged user favourite list", done => {
-    // TO-DO
-    // checkear que sea un array 
-    // checkear que tenga la cantidad correcta de elementos
-    // checkear las clave de cada elemento
-    // checkear que los elementos sean/sea el/los correctos
+
+    request(app)
+      .post('/login')
+      .send(userExample)
+      .expect(200)
+      .then((user) => {
+        request(app)
+          .get(`/favourites/user`)
+          .set({ Authorization: `Bearer ${user._body.token}` })
+          .expect(200)
+          .then(async (response) => {
+            assert.isArray(response._body)
+            assert.containsAllKeys(response._body[0], [
+              "id",
+              "movie_code",
+              "user_id",
+              "review"
+            ])
+            const favourite = await prisma.favoriteFilms.findMany()
+
+            assert.deepEqual(response._body, favourite)
+          })
+          .then(() => done(), done);
+      })
   })
-  it("Should forbid access to non logged user", done => {
-    //TO-DO
-    //Chequear status
-    //Chequear mensaje de error
+
+
+
+  it.only("Should forbid access to non logged user", done => {
+
+    request(app)
+      .get(`/favourites/user`)
+      .expect(401)
+      .then(async (response) => {
+        assert.equal(response._body.error, "Authorization is not valid")
+      })
+      .then(() => done(), done);
   })
+
 })
 
 
@@ -319,7 +407,7 @@ describe("GET /movies", () => {
           ])
         );
       })
-      .then(() => done(), done); // soluciona el problema de  Error: Timeout of 2000ms exceeded.
+      .then(() => done(), done)
   });
 });
 
@@ -329,8 +417,8 @@ describe("GET /movies/:id", () => {
       .get("/movies/58611129-2dbc-4a81-a72f-77ddfc1b1b49")
       .expect(200)
       .then((response) => {
-        assert.isNotEmpty(response._body); //no esta vacio
-        assert.isNotArray(response._body);
+        assert.isNotEmpty(response._body)
+        assert.isNotArray(response._body)
         assert.containsAllKeys(response._body, [
           "title",
           "description",

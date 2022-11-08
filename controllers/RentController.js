@@ -6,6 +6,7 @@ const prisma = new PrismaClient()
 
 const getAllRents = async (req, res) => {
   try {
+
     let { order } = req.query;
 
     order ? (order = order) : (order = "asc");
@@ -29,15 +30,18 @@ const getAllRents = async (req, res) => {
   }
 }
 
+
 const rentMovie = (req, res, next) => {
 
   try {
     const { code } = req.params
 
     prisma.movies.findUnique({ where: { code: code } }).then((rental) => {
-      if (!rental) throw new Error(" Movie Not Found ")
+
+      if (!rental) return res.status(404).json({ error: "Movie Not Found" })
+
       if (rental.stock === 0) {
-        return res.status(400).json({ error: "BAD REQUEST" })
+        return res.status(400).json({ error: "The movie has not stock" })
       }
       prisma.rents
         .create({
@@ -61,7 +65,6 @@ const rentMovie = (req, res, next) => {
   } catch (error) {
     res.status(500).json({ error })
   }
-
 }
 
 

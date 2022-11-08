@@ -99,9 +99,9 @@ const logout = (req, res, next) => {
   try {
 
     req.user = null
-    console.log("LoguedOut")
-    res.redirect("/login")
     res.status(202).json({ msg: 'Unlogged User' })
+    res.redirect("/login")
+
   } catch (error) {
     res.status(500).json({ error })
   }
